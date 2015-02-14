@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, re, email, sqlite3, multiprocessing, pickle, subprocess
+import os, re, email, sqlite3, multiprocessing, pickle
+from bs4 import BeautifulSoup
 
 
 mail_filename_regex = re.compile(r"\d+$")
@@ -14,11 +15,7 @@ def get_body(message):
     if message.is_multipart():
         for part in payload:
             if part.get_content_type() == "text/html":
-                lynx = subprocess.Popen(
-                    ["lynx", "-width=71", "-display_charset=utf-8", "-assume_local_charset="+part.get_content_charset("us-ascii"),
-                     "-dump", "-stdin"], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-                output = lynx.communicate(part.get_payload().encode("utf-8"))[0]
-                text = output.decode("utf-8", errors="replace")
+                text = BeautifulSoup(part.get_payload()).get_text()
                 break
             elif part.get_content_type() == "text/plain":
                 text = part.get_payload()
