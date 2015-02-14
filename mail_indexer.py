@@ -30,15 +30,17 @@ def process_chunk(filepaths):
     result = {}
     for path in filepaths:
         message = email.message_from_binary_file(open(path, "rb"))
+        data = {}
+        data["folder"] = os.path.basename(os.path.dirname(path))
+        data["index"] = int(os.path.basename(path))
+        data["message_id"] = "{}-{}@wilson.bronger.org".format(data["folder"], data["index"])
         if not message["message-id"]:
             continue
         else:
             match = message_id_regex.search(message["message-id"])
             if not match:
                 continue
-            message_id = match.group(1)
-        data = {}
-        data["message_id"] = message_id
+            data["message_id"] = match.group(1)
         data["subject"] = str(message["subject"] or "")
         data["sender"] = str(message["from"] or "")
         data["sender_email"] = email.utils.parseaddr(data["sender"])[1].lower()
@@ -46,8 +48,6 @@ def process_chunk(filepaths):
             data["timestamp"] = message["date"] and email.utils.parsedate_to_datetime(message["date"])
         except TypeError:
             data["timestamp"] = None
-        data["folder"] = os.path.basename(os.path.dirname(path))
-        data["index"] = int(os.path.basename(path))
         data["body"] = get_body(message)
         data["body_normalized"] = " ".join(word_regex.findall(data["body"]))
         data["parent"] = None
@@ -56,7 +56,7 @@ def process_chunk(filepaths):
             match = message_id_regex.search(parent)
             if match:
                 data["parent"] = match.group(1)
-        result[message_id] = data
+        result[data["message_id"]] = data
     return result
 
 
