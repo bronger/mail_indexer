@@ -29,8 +29,7 @@ def get_body(message):
 def process_chunk(filepaths):
     result = {}
     for path in filepaths:
-        with open(path, "rb") as mail_file:
-            message = email.message_from_binary_file(mail_file)
+        message = email.message_from_binary_file(open(path, "rb"))
         if not message["message-id"]:
             continue
         else:
