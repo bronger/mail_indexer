@@ -59,17 +59,27 @@ def process_chunk(filepaths):
         result[message_id] = data
     return result
 
-print("Reading filepaths ...")
-pickle_filepath = os.path.expanduser("~/aktuell/mail_files.pickle")
-try:
-    filepaths = pickle.load(open(pickle_filepath, "rb"))
-except FileNotFoundError:
-    filepaths = []
-    for root, __, filenames in os.walk(os.path.expanduser("/var/tmp/Mail")):
-        for filename in filenames:
-            if mail_filename_regex.match(filename):
+
+connection = sqlite3.connect(os.path.expanduser("~/Mail/mails.db"))
+connection.execute("PRAGMA foreign_keys = 1")
+connection.execute("""CREATE TABLE IF NOT EXISTS mails (message_id CHARACTER(255), subject CHARACTER(255), body TEXT,
+                                                        body_normalized TEXT, timestamp DATETIME, sender CHARACTER(255),
+                                                        sender_email CHARACTER(255), folder CHARACTER(64), file_index INTEGER,
+                                                        parent CHARACTER(255),
+                                                        PRIMARY KEY (message_id),
+                                                        FOREIGN KEY (parent) REFERENCES mails(message_id))""")
+
+print("Reading already seen mail data ...")
+already_seen = set(connection.execute("SELECT folder, file_index FROM mails"))
+print("Searching for new mail files ...")
+filepaths = []
+for root, __, filenames in os.walk(os.path.expanduser("/var/tmp/Mail")):
+    folder = os.path.basename(root)
+    for filename in filenames:
+        if mail_filename_regex.match(filename):
+            if (folder, int(filename)) not in already_seen:
                 filepaths.append(os.path.join(root, filename))
-    pickle.dump(filepaths, open(pickle_filepath, "wb"))
+
 
 print("Parsing mails ...")
 chunksize = len(filepaths) // multiprocessing.cpu_count()
@@ -84,15 +94,8 @@ for result in pool.map(process_chunk, chunks):
 pool.close()
 pool.join()
 
+
 print("Writing database ...")
-connection = sqlite3.connect(os.path.expanduser("~/Mail/mails.db"))
-connection.execute("PRAGMA foreign_keys = 1")
-connection.execute("""CREATE TABLE IF NOT EXISTS mails (message_id CHARACTER(255), subject CHARACTER(255), body TEXT,
-                                                        body_normalized TEXT, timestamp DATETIME, sender CHARACTER(255),
-                                                        sender_email CHARACTER(255), folder CHARACTER(64), file_index INTEGER,
-                                                        parent CHARACTER(255),
-                                                        PRIMARY KEY (message_id),
-                                                        FOREIGN KEY (parent) REFERENCES mails(message_id))""")
 
 def insert_data(data):
     connection.execute("INSERT INTO mails VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
