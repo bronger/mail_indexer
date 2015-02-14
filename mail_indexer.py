@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, re, email, sqlite3, multiprocessing, pickle
+import os, re, email, sqlite3, multiprocessing, pickle, socket
 from bs4 import BeautifulSoup
 
 
@@ -26,7 +26,10 @@ def get_body(message):
 def process_chunk(filepaths):
     result = {}
     for path in filepaths:
-        message = email.message_from_binary_file(open(path, "rb"))
+        if files is not None:
+            message = email.message_from_bytes(files[path])
+        else:
+            message = email.message_from_binary_file(open(path, "rb"))
         data = {}
         data["folder"] = os.path.basename(os.path.dirname(path))
         data["index"] = int(os.path.basename(path))
@@ -66,16 +69,21 @@ connection.execute("""CREATE TABLE IF NOT EXISTS mails (message_id CHARACTER(255
                                                         PRIMARY KEY (message_id),
                                                         FOREIGN KEY (parent) REFERENCES mails(message_id))""")
 
+
 print("Reading already seen mail data ...")
 already_seen = set(connection.execute("SELECT folder, file_index FROM mails"))
 print("Searching for new mail files ...")
 filepaths = []
+files = {} if socket.gethostname() == "wolowitz" else None
 for root, __, filenames in os.walk(os.path.expanduser("/var/tmp/Mail")):
     folder = os.path.basename(root)
     for filename in filenames:
         if mail_filename_regex.match(filename):
             if (folder, int(filename)) not in already_seen:
-                filepaths.append(os.path.join(root, filename))
+                filepath = os.path.join(root, filename)
+                filepaths.append(filepath)
+                if files is not None:
+                    files[filepath] = open(filepath, "rb").read()
 
 
 print("Parsing mails ...")
