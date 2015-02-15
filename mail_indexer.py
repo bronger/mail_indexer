@@ -19,10 +19,13 @@ def get_body(message):
     text = ""
     if message.is_multipart():
         for part in payload:
-            if part.get_content_type() == "text/html":
+            if part.get_content_type() == "multipart/alternative":
+                text = get_body(part)
+                break
+            elif part.get_content_type() == "text/html":
                 text = BeautifulSoup(part.get_payload()).get_text()
                 break
-            elif part.get_content_type() == "text/plain":
+            elif part.get_content_type() == "text/plain" and not text:
                 text = part.get_payload()
     else:
         text = payload
