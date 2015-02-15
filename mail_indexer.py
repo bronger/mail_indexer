@@ -76,19 +76,19 @@ def process_chunk(filepaths):
 
 connection = sqlite3.connect(os.path.expanduser("~/Mail/mails.db"))
 connection.execute("PRAGMA foreign_keys = 1")
-connection.execute("""CREATE TABLE IF NOT EXISTS mails (message_id CHARACTER(255), subject CHARACTER(255), body TEXT,
+connection.execute("""CREATE TABLE IF NOT EXISTS Mails (message_id CHARACTER(255), subject CHARACTER(255), body TEXT,
                                                         body_normalized TEXT, timestamp DATETIME, sender CHARACTER(255),
                                                         sender_email CHARACTER(255), recipients CHARACTER(1023),
                                                         folder CHARACTER(64), file_index INTEGER,
                                                         parent CHARACTER(255),
                                                         PRIMARY KEY (message_id),
-                                                        FOREIGN KEY (parent) REFERENCES mails(message_id))""")
+                                                        FOREIGN KEY (parent) REFERENCES Mails(message_id))""")
 
 
 print("Reading already seen mail data ...")
 already_seen = set()
 message_ids = set()
-for message_id, folder, index in connection.execute("SELECT message_id, folder, file_index FROM mails"):
+for message_id, folder, index in connection.execute("SELECT message_id, folder, file_index FROM Mails"):
     message_ids.add(message_id)
     already_seen.add((folder, index))
 print("Searching for new mail files ...")
@@ -126,7 +126,7 @@ pool.join()
 print("Writing database ...")
 
 def insert_data(data):
-    connection.execute("INSERT INTO mails VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    connection.execute("INSERT INTO Mails VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                        (data["message_id"], data["subject"], data["body"], data["body_normalized"], data["timestamp"], data["sender"],
                         data["sender_email"], data["recipients"], data["folder"], data["index"], data["parent"]))
 
