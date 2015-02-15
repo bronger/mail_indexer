@@ -28,6 +28,15 @@ def get_body(message):
         text = payload
     return text
 
+def get_email(string):
+    return email.utils.parseaddr(string)[1].lower()
+
+def scan_recipients(field):
+    if field:
+        return {get_email(part) for part in str(field).split(",")}
+    else:
+        return set()
+
 def process_chunk(filepaths):
     result = {}
     for path in filepaths:
@@ -42,7 +51,9 @@ def process_chunk(filepaths):
                 data["message_id"] = match.group(1)
         data["subject"] = str(message["subject"] or "")
         data["sender"] = str(message["from"] or "")
-        data["sender_email"] = email.utils.parseaddr(data["sender"])[1].lower()
+        data["sender_email"] = get_email(data["sender"])
+        data["recipients"] = " ".join(
+            scan_recipients(message["to"]) | scan_recipients(message["cc"]) | scan_recipients(message["bcc"]))
         try:
             data["timestamp"] = message["date"] and email.utils.parsedate_to_datetime(message["date"])
         except TypeError:
@@ -67,7 +78,8 @@ connection = sqlite3.connect(os.path.expanduser("~/Mail/mails.db"))
 connection.execute("PRAGMA foreign_keys = 1")
 connection.execute("""CREATE TABLE IF NOT EXISTS mails (message_id CHARACTER(255), subject CHARACTER(255), body TEXT,
                                                         body_normalized TEXT, timestamp DATETIME, sender CHARACTER(255),
-                                                        sender_email CHARACTER(255), folder CHARACTER(64), file_index INTEGER,
+                                                        sender_email CHARACTER(255), recipients CHARACTER(1023),
+                                                        folder CHARACTER(64), file_index INTEGER,
                                                         parent CHARACTER(255),
                                                         PRIMARY KEY (message_id),
                                                         FOREIGN KEY (parent) REFERENCES mails(message_id))""")
@@ -114,9 +126,9 @@ pool.join()
 print("Writing database ...")
 
 def insert_data(data):
-    connection.execute("INSERT INTO mails VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    connection.execute("INSERT INTO mails VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                        (data["message_id"], data["subject"], data["body"], data["body_normalized"], data["timestamp"], data["sender"],
-                        data["sender_email"], data["folder"], data["index"], data["parent"]))
+                        data["sender_email"], data["recipients"], data["folder"], data["index"], data["parent"]))
 
 def insert_message(data):
     try:
