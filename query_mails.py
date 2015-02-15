@@ -14,7 +14,6 @@ parser.add_argument("--to", metavar="EMAIL", help="one of the recipients' email 
 args = parser.parse_args()
 
 connection = sqlite3.connect(os.path.expanduser("~/Mail/mails.db"))
-query_string = "SELECT folder, file_index FROM Mails WHERE "
 components = []
 if args.newer:
     year, __, month = args.newer.partition("-")    
@@ -36,7 +35,9 @@ if args.from_:
 if args.to:
     components.append(("recipients LIKE ?", "%" + args.to + "%"))
 
-query_string += " AND ".join(component[0] for component in components)
+query_string = "SELECT folder, file_index FROM Mails"
+if components:
+    query_string += " WHERE " + " AND ".join(component[0] for component in components)
 parameters = tuple(component[1] for component in components)
 folders = {}
 for folder, index in connection.execute(query_string, parameters):
