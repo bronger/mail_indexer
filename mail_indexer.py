@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, re, email, sqlite3, multiprocessing, pickle, argparse
+import os, re, email, sqlite3, multiprocessing, pickle
 from bs4 import BeautifulSoup
 
 
@@ -26,10 +26,7 @@ def get_body(message):
 def process_chunk(filepaths):
     result = {}
     for path in filepaths:
-        if args.less_memory:
-            message = email.message_from_binary_file(open(path, "rb"))
-        else:
-            message = email.message_from_bytes(files[path])
+        message = email.message_from_binary_file(open(path, "rb"))
         data = {}
         data["folder"] = os.path.basename(os.path.dirname(path))
         data["index"] = int(os.path.basename(path))
@@ -65,12 +62,6 @@ def process_chunk(filepaths):
     return result
 
 
-parser = argparse.ArgumentParser(description="Creates and updates the mails DB.")
-parser.add_argument("--less-memory", action="store_true",
-                    help="consume less memory; necessary on systems with less than 8GB RAM at initial scanning")
-args = parser.parse_args()
-
-
 connection = sqlite3.connect(os.path.expanduser("~/Mail/mails.db"))
 connection.execute("PRAGMA foreign_keys = 1")
 connection.execute("""CREATE TABLE IF NOT EXISTS mails (message_id CHARACTER(255), subject CHARACTER(255), body TEXT,
@@ -85,7 +76,6 @@ print("Reading already seen mail data ...")
 already_seen = set(connection.execute("SELECT folder, file_index FROM mails"))
 print("Searching for new mail files ...")
 filepaths = []
-files = {} if not args.less_memory else None
 for root, __, filenames in os.walk(os.path.expanduser("/var/tmp/Mail")):
     folder = os.path.basename(root)
     for filename in filenames:
@@ -93,8 +83,6 @@ for root, __, filenames in os.walk(os.path.expanduser("/var/tmp/Mail")):
             if (folder, int(filename)) not in already_seen:
                 filepath = os.path.join(root, filename)
                 filepaths.append(filepath)
-                if not args.less_memory:
-                    files[filepath] = open(filepath, "rb").read()
 
 
 print("Parsing mails ...")
