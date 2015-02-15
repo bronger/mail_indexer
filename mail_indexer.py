@@ -76,13 +76,14 @@ def process_chunk(filepaths):
 
 connection = sqlite3.connect(os.path.expanduser("~/Mail/mails.db"))
 connection.execute("PRAGMA foreign_keys = 1")
-connection.execute("""CREATE TABLE IF NOT EXISTS Mails (message_id CHARACTER(255), subject CHARACTER(255), body TEXT,
-                                                        body_normalized TEXT, timestamp DATETIME, sender CHARACTER(255),
-                                                        sender_email CHARACTER(255), recipients CHARACTER(1023),
-                                                        folder CHARACTER(64), file_index INTEGER,
-                                                        parent CHARACTER(255),
-                                                        PRIMARY KEY (message_id),
-                                                        FOREIGN KEY (parent) REFERENCES Mails(message_id))""")
+connection.execute("""CREATE VIRTUAL TABLE IF NOT EXISTS Mails USING fts4(
+                          message_id CHARACTER(255), subject CHARACTER(255), body TEXT,
+                          body_normalized TEXT, timestamp DATETIME, sender CHARACTER(255),
+                          sender_email CHARACTER(255), recipients CHARACTER(1023),
+                          folder CHARACTER(64), file_index INTEGER,
+                          parent CHARACTER(255),
+                          PRIMARY KEY (message_id),
+                          FOREIGN KEY (parent) REFERENCES Mails(message_id))""")
 
 
 print("Reading already seen mail data ...")
@@ -126,7 +127,8 @@ pool.join()
 print("Writing database ...")
 
 def insert_data(data):
-    connection.execute("INSERT INTO Mails VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    connection.execute("INSERT INTO Mails (message_id, subject, body, body_normalized, timestamp, sender, sender_email, recipients, "
+                       "folder, file_index, parent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                        (data["message_id"], data["subject"], data["body"], data["body_normalized"], data["timestamp"], data["sender"],
                         data["sender_email"], data["recipients"], data["folder"], data["index"], data["parent"]))
 
