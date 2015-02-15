@@ -48,7 +48,7 @@ def process_chunk(filepaths):
         except TypeError:
             data["timestamp"] = None
         data["body"] = get_body(message)
-        data["body_normalized"] = " ".join(word_regex.findall(data["body"]))
+        data["body_normalized"] = " ".join(word_regex.findall(data["body"])).lower()
         data["parent"] = None
         parent = message["in-reply-to"]
         if parent:
