@@ -56,13 +56,18 @@ def process_chunk(filepaths):
             match = message_id_regex.search(parent)
             if match:
                 data["parent"] = match.group(1)
-        result[data["message_id"]] = data
+        if data["message_id"] in result:
+            new_message_id = "{}-{}-{}".format(data["folder"], data["index"], data["message_id"])
+            data["message_id"] = new_message_id
+            result[new_message_id] = data
+        else:
+            result[data["message_id"]] = data
     return result
 
 
 parser = argparse.ArgumentParser(description="Creates and updates the mails DB.")
 parser.add_argument("--less-memory", action="store_true",
-                    help="consume less memory; necessary on systems with less than 6GB RAM at initial scanning")
+                    help="consume less memory; necessary on systems with less than 8GB RAM at initial scanning")
 args = parser.parse_args()
 
 
@@ -101,6 +106,13 @@ chunks = [filepaths[i * chunksize:(i + 1) * chunksize] for i in range(multiproce
 messages = {}
 pool = multiprocessing.Pool()
 for result in pool.map(process_chunk, chunks):
+    duplicates = set(messages) & set(result)
+    for duplicate in duplicates:
+        print("Duplicate across chunks.")
+        data = messages[duplicate]
+        new_message_id = "{}-{}-{}".format(data["folder"], data["index"], duplicate)
+        data["message_id"] = new_message_id
+        messages[new_message_id] = data
     messages.update(result)
 pool.close()
 pool.join()
