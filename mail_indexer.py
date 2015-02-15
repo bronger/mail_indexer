@@ -9,6 +9,11 @@ mail_filename_regex = re.compile(r"\d+$")
 word_regex = re.compile("\w+")
 message_id_regex = re.compile("<(.*?)>")
 
+def build_custom_message_id(data):
+    new_message_id = "{}-{}-{}".format(data["folder"], data["index"], data["message_id"])
+    data["message_id"] = new_message_id
+    return new_message_id
+
 def get_body(message):
     payload = message.get_payload()
     text = ""
@@ -51,8 +56,7 @@ def process_chunk(filepaths):
             if match:
                 data["parent"] = match.group(1)
         if data["message_id"] in result:
-            new_message_id = "{}-{}-{}".format(data["folder"], data["index"], data["message_id"])
-            data["message_id"] = new_message_id
+            new_message_id = build_custom_message_id(data)
             result[new_message_id] = data
         else:
             result[data["message_id"]] = data
@@ -95,8 +99,7 @@ for result in pool.map(process_chunk, chunks):
     for duplicate in duplicates:
         print("Duplicate across chunks.")
         data = messages[duplicate]
-        new_message_id = "{}-{}-{}".format(data["folder"], data["index"], duplicate)
-        data["message_id"] = new_message_id
+        new_message_id = build_custom_message_id(data)
         messages[new_message_id] = data
     messages.update(result)
 pool.close()
