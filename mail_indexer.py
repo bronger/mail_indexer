@@ -74,7 +74,11 @@ connection.execute("""CREATE TABLE IF NOT EXISTS mails (message_id CHARACTER(255
 
 
 print("Reading already seen mail data ...")
-already_seen = set(connection.execute("SELECT folder, file_index FROM mails"))
+already_seen = set()
+message_ids = set()
+for message_id, folder, index in connection.execute("SELECT message_id, folder, file_index FROM mails"):
+    message_ids.add(message_id)
+    already_seen.add((folder, index))
 print("Searching for new mail files ...")
 filepaths = []
 for root, __, filenames in os.walk(os.path.expanduser("/var/tmp/Mail")):
@@ -95,13 +99,14 @@ chunks = [filepaths[i * chunksize:(i + 1) * chunksize] for i in range(multiproce
 messages = {}
 pool = multiprocessing.Pool()
 for result in pool.map(process_chunk, chunks):
-    duplicates = set(messages) & set(result)
+    duplicates = message_ids.intersection(result)
     for duplicate in duplicates:
         print("Duplicate across chunks.")
         data = messages[duplicate]
         new_message_id = build_custom_message_id(data)
         messages[new_message_id] = data
     messages.update(result)
+    message_ids = message_ids.union(messages)
 pool.close()
 pool.join()
 
