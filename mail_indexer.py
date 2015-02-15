@@ -117,7 +117,6 @@ pool = multiprocessing.Pool()
 for result in pool.map(process_chunk, chunks):
     duplicates = message_ids.intersection(result)
     for duplicate in duplicates:
-        print("Duplicate across chunks.")
         data = messages[duplicate]
         new_message_id = build_custom_message_id(data)
         messages[new_message_id] = data
