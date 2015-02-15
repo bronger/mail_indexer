@@ -82,7 +82,7 @@ for root, __, filenames in os.walk(os.path.expanduser("/var/tmp/Mail")):
                 filepaths.append(filepath)
 
 
-print("Parsing mails ...")
+print("{} new mails found.  Parsing mails ...".format(len(filepaths)))
 chunksize = len(filepaths) // multiprocessing.cpu_count()
 if len(filepaths) % multiprocessing.cpu_count():
     chunksize += 1
