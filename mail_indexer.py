@@ -31,13 +31,10 @@ def process_chunk(filepaths):
         data["folder"] = os.path.basename(os.path.dirname(path))
         data["index"] = int(os.path.basename(path))
         data["message_id"] = "{}-{}@wilson.bronger.org".format(data["folder"], data["index"])
-        if not message["message-id"]:
-            continue
-        else:
+        if message["message-id"]:
             match = message_id_regex.search(message["message-id"])
-            if not match:
-                continue
-            data["message_id"] = match.group(1)
+            if match:
+                data["message_id"] = match.group(1)
         data["subject"] = str(message["subject"] or "")
         data["sender"] = str(message["from"] or "")
         data["sender_email"] = email.utils.parseaddr(data["sender"])[1].lower()
