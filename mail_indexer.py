@@ -94,7 +94,7 @@ for message_id, folder, index in connection.execute("SELECT message_id, folder, 
     already_seen.add((folder, index))
 print("Searching for new mail files ...")
 filepaths = []
-for root, __, filenames in os.walk(os.path.expanduser("/var/tmp/Mail")):
+for root, __, filenames in os.walk(os.path.expanduser("~/Mail")):
     folder = os.path.basename(root)
     for filename in filenames:
         if mail_filename_regex.match(filename):
