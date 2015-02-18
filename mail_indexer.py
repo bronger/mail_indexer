@@ -117,7 +117,15 @@ pool = multiprocessing.Pool()
 for result in pool.map(process_chunk, chunks):
     duplicates = message_ids.intersection(result)
     for duplicate in duplicates:
-        data = messages[duplicate]
+        try:
+            data = messages[duplicate]
+        except KeyError:
+            data = {}
+            data["message_id"], data["subject"], data["body"], data["body_normalized"], data["timestamp"], data["sender"], \
+                data["sender_email"], data["recipients"], data["folder"], data["index"], data["parent"] = \
+                    list(connection.execute("SELECT message_id, subject, body, body_normalized, timestamp, sender, "
+                                            "sender_email, recipients, folder, file_index, parent FROM Mails "
+                                            "WHERE message_id=?", (duplicate,)))[0]
         new_message_id = build_custom_message_id(data)
         messages[new_message_id] = data
     messages.update(result)
