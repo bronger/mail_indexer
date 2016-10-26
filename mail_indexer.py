@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, re, email, sqlite3, multiprocessing, pickle
+import os, re, email, sqlite3, multiprocessing
 from bs4 import BeautifulSoup
 
 
