@@ -98,6 +98,8 @@ for message_id, folder, index in connection.execute("SELECT message_id, folder, 
 print("Searching for new mail files ...")
 filepaths = []
 for root, __, filenames in os.walk(os.path.expanduser("~/Mail")):
+    if "spam-old" in root:
+        continue
     folder = os.path.basename(root)
     for filename in filenames:
         if mail_filename_regex.match(filename):
