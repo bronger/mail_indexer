@@ -36,9 +36,27 @@ def get_email(string):
 
 def scan_recipients(field):
     if field:
-        return {get_email(part) for part in str(field).split(",")}
+        return {get_email(part) for part in decode_header(field).split(",")}
     else:
         return set()
+
+def decode_header(header):
+    if not header:
+        return ""
+    parts = []
+    for part, encoding in email.header.decode_header(header):
+        if isinstance(part, bytes):
+            if encoding in {None, "unknown", "unknown-8bit"}:
+                encoding = "iso-8859-1"
+            if encoding == "iso8859_15_fdis":
+                encoding = "iso-8859-15"
+            try:
+                part = part.decode(encoding, errors="replace")
+            except LookupError:
+                print("Encoding “{}” unknown.".format(encoding))
+                part = part.decode("iso-8859-1", errors="replace")
+        parts.append(part)
+    return "".join(parts)
 
 def process_chunk(filepaths):
     result = {}
@@ -52,8 +70,8 @@ def process_chunk(filepaths):
             match = message_id_regex.search(message["message-id"])
             if match:
                 data["message_id"] = match.group(1)
-        data["subject"] = str(message["subject"] or "")
-        data["sender"] = str(message["from"] or "")
+        data["subject"] = decode_header(message["subject"])
+        data["sender"] = decode_header(message["from"])
         data["sender_email"] = get_email(data["sender"])
         data["recipients"] = " ".join(
             scan_recipients(message["to"]) | scan_recipients(message["cc"]) | scan_recipients(message["bcc"]))
