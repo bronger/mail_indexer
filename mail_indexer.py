@@ -23,7 +23,7 @@ def get_body(message):
                 text = get_body(part)
                 break
             elif part.get_content_type() == "text/html":
-                text = BeautifulSoup(part.get_payload()).get_text()
+                text = BeautifulSoup(part.get_payload(), "lxml").get_text()
                 break
             elif part.get_content_type() == "text/plain" and not text:
                 text = part.get_payload()
